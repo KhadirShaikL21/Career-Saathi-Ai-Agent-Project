@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import datetime as _dt
 
 try:  # pragma: no cover - gracefully degrade if google_adk is absent
-    import google_adk  # type: ignore
+    import google_adk  # type: ignore  # ADK exposes Agent/Tool/Workflow hooks for Gemini prompts + tools.
 except Exception:  # pylint: disable=broad-except
     class _ShimTool:
         def __init__(self, name: str, description: str) -> None:
@@ -38,6 +38,8 @@ except Exception:  # pylint: disable=broad-except
                     result = component.run(result)
             return result
 
+    # In local/offline contexts we still simulate the Agent Development Kit surface so
+    # the rest of the multi-agent pipeline (and Streamlit UI) can continue to function.
     google_adk = SimpleNamespace(  # type: ignore[assignment]
         Tool=_ShimTool,
         Agent=_ShimAgent,
@@ -67,7 +69,7 @@ def _wrap(lines: List[str]) -> List[str]:
 
 
 class SearchTool(google_adk.Tool):  # type: ignore[misc]
-    """Minimal search abstraction so each agent can cite fresh inspirations."""
+    """Tool wired into Google ADK so Gemini prompts can cite external signals."""
 
     def __init__(self) -> None:
         super().__init__(
@@ -106,7 +108,12 @@ class SearchTool(google_adk.Tool):  # type: ignore[misc]
 
 
 class BaseCareerAgent:
-    """Light wrapper that spins up a google_adk agent when the SDK is available."""
+    """Parent for every specialist agent (Role, Market, Curriculum, Insights).
+
+    When the Google Agent Development Kit is available, this class spins up a runtime agent that
+    ultimately routes prompts to Gemini. Otherwise it falls back to deterministic local logic so
+    contributors can iterate without live credentials.
+    """
 
     def __init__(self, name: str, system_prompt: str, search_tool: SearchTool) -> None:
         self.name = name
@@ -465,7 +472,7 @@ class InsightCoach(BaseCareerAgent):
 
 
 class AgentEngine:
-    """Coordinates all domain experts and aggregates results."""
+    """Root orchestrator coordinating the four google-adk/Gemini powered agents."""
 
     def __init__(self) -> None:
         self.search_tool = SearchTool()
@@ -490,6 +497,7 @@ class AgentEngine:
         return None
 
     def run_research(self, request: CareerRequest) -> Dict[str, Any]:
+        # Shared memory ensures every agent/Gemini prompt inherits previous outputs.
         shared: Dict[str, Any] = {"request": request.__dict__}
         overview = self.role_agent.run(request, shared)
         shared["overview"] = overview
@@ -540,6 +548,7 @@ class AgentEngine:
             narrative = salary_data.get("narrative", [])
             narrative_hint = narrative[0] if narrative else "Companies sweeten offers with mentorship pods and certification budgets."
             return fill(" ".join([fresher_line, mid_line, senior_line, narrative_hint]))
+        # Chat replies are multi-agent aware: we stitch highlights from role/market/roadmap/insights memory.
         snippets: List[str] = []
         role_summary = analysis.get("overview", {}).get("role_summary", [])
         if role_summary:

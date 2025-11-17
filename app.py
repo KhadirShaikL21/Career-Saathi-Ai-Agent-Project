@@ -17,6 +17,8 @@ from visuals import (
 
 st.set_page_config(page_title="Career Saathi", page_icon="💼", layout="wide")
 
+# Streamlit keeps track of the latest multi-agent dossier so every rerun reuses Gemini outputs
+# instead of re-hitting Google ADK unless the user changes their persona inputs.
 if "analysis" not in st.session_state:
     st.session_state["analysis"] = None
 if "chat_history" not in st.session_state:
@@ -30,6 +32,7 @@ if "chat_history" not in st.session_state:
         }
     ]
 
+# Single root orchestrator that fans out to RoleAnalyst / MarketResearcher / CurriculumArchitect / InsightCoach.
 ENGINE = AgentEngine()
 
 CSS = """
@@ -303,6 +306,7 @@ def _skill_profile() -> Dict[str, int]:
     }
 
 def render_chat_tab(analysis: Dict[str, object] | None) -> None:
+    # Gemini/ADK infused chat surface now lives in the dashboard so it reads the same context as other tabs.
     st.markdown(
         "<div class='dashboard-card'><h3>🤖 Saathi AI Mentor</h3>"
         "<p>Use natural questions—ask about fresher salary bands, interview playbooks, or upskilling bets.</p></div>",
@@ -502,6 +506,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# Step 1 captures every signal required by the agents (role, industry, timeline, skills) before invoking Google ADK.
 st.markdown("<div class='section-heading'>STEP 1 · DISCOVER CAREER OPTIONS</div>", unsafe_allow_html=True)
 with st.container():
     st.markdown("<div class='form-shell'>", unsafe_allow_html=True)
@@ -581,6 +586,7 @@ if submitted:
 
 analysis = st.session_state.get("analysis")
 
+# Step 2 renders the multi-agent dossier (Overview, Market, Learning Path, Insights, Chat) using cached Gemini results.
 st.markdown("<div class='section-heading'>STEP 2 · ANALYSIS DASHBOARD</div>", unsafe_allow_html=True)
 if not analysis:
     st.info("Complete Step 1 to unlock interactive dashboards, salary charts, and insights.")

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-# Reusable Plotly visual helpers for Career Saathi.
+"""Plotly helpers translating Google ADK agent outputs into cinematic visuals."""
 
 from typing import Dict, List
 
 import plotly.graph_objects as go
 
 
+# Consistent layout so every chart feels like part of the same glass dashboard.
 _BASE_LAYOUT = dict(
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
