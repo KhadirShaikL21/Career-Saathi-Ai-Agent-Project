@@ -1,4 +1,4 @@
-# Career Saathi · Career Guidance Ai Agent ✨
+# Career Saathi · Career Guidance AI Agent ✨
 
 <div align="center">
 
@@ -20,6 +20,91 @@ Immersive Streamlit cockpit powered by Google Agent Development Kit (google-adk)
 - 🎨 **Glassmorphism UI System**: Streamlit front-end delivers dual-pane forms, animated hero orbits, Plotly salary/radar charts, and a dashboard tab for the embedded Saathi chatbot.
 - 💬 **Contextual Chat Surface**: Chat tab consumes the same analysis bundle, enabling users to ask “What’s the fresher salary in Bengaluru?” or “How do I pitch my robotics projects?” with grounded answers.
 - 🚀 **Ready for Production**: Strict typing, dataclasses for requests, reusable chart helpers (`visuals.py`), and `requirements.txt` tuned for Streamlit deployment on Streamlit Community Cloud or any container runtime.
+
+## Course Learnings in Practice
+
+The course required us to internalize three pillars—agent theory, multi-agent coordination, and interoperable protocols. Career Saathi demonstrates all three using Google ADK abstractions powered by Gemini reasoning models.
+
+### 1. AI Agents 101 (Definition & Types)
+
+- **Definition**: An AI agent is a goal-directed loop that observes user inputs, reasons with a foundation model, and acts via tools or memory. Google ADK standardizes that loop so we can focus on domain prompts while Gemini 1.5 Flash handles cognition.
+- **Types Covered**:
+  - _Reactive_: instant Q&A helpers we use inside the chat tab for clarifications.
+  - _Deliberative / planning_: Role Analyst and Curriculum Architect maintain shared state to plan multi-step narratives.
+  - _Tool-augmented_: Market Researcher calls salary lookup utilities before Gemini formats prose.
+- **Implementation Callout**: `agent_engine.py` defines each agent via ADK `Agent` classes; every call includes guardrails for temperature, safety, and JSON schemas learned during the course.
+
+```mermaid
+flowchart LR
+    Observe --> Reason --> Act --> Learn --> Observe
+    Reason -->|Gemini 1.5 Flash| Tools[(Google ADK Tools + Memory)]
+```
+
+### 2. Creating & Coordinating Multi-Agent Systems
+
+- **Seven-Step Recipe Learned**:
+
+1.  Capture a structured request (see `CareerRequest`).
+2.  Instantiate specialized agents with role-specific prompts.
+3.  Define an A2A contract—a shared envelope carrying context, messages, and tool outputs.
+4.  Chain agents with Google ADK `SequentialWorkflow` so outputs automatically feed inputs.
+5.  Persist intermediate artifacts for observability (we log into `analysis["shared"]`).
+6.  Render results through UI + chat surfaces.
+7.  Collect feedback for the next run (Streamlit chat history).
+
+- **Result**: Four agents contribute distinct artifacts, yet the UI receives a single coherent dossier.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Engine as AgentEngine
+    participant Role as Role Analyst
+    participant Market as Market Researcher
+    participant Curriculum as Curriculum Architect
+    participant Insight as Insight Coach
+    User->>Engine: Submit CareerRequest
+    Engine->>Role: shared.request
+    Role-->>Engine: shared.overview
+    Engine->>Market: shared.overview
+    Market-->>Engine: shared.market
+    Engine->>Curriculum: shared.market
+    Curriculum-->>Engine: shared.roadmap
+    Engine->>Insight: shared.roadmap
+    Insight-->>Engine: shared.coaching
+    Engine-->>User: Unified dossier + chat memory
+```
+
+### 3. A2A Protocol & MCP Integration
+
+- **A2A (Agent-to-Agent) Recall**: The protocol is our disciplined way of passing envelopes such as `{request, shared, tools}` between agents. Google ADK enforces schema validation, while Gemini populates narrative sections. Any new agent simply subscribes to the same envelope.
+- **MCP (Model Context Protocol)**: The course highlighted MCP as the standard to expose agent capabilities to external clients. Career Saathi is MCP-ready: the `AgentEngine` output can register as an MCP tool so IDEs, chat surfaces, or other bots can call `career.saathi.plan` and receive the same structured dossier.
+- **Google ADK + MCP Bridge**: ADK agents remain internal, but MCP presents them externally through capability descriptors, keeping credentials and prompt logic boxed in the Streamlit service.
+- **Practical Impact**: This architecture lets us plug Career Saathi into any MCP-compatible orchestrator (VS Code Copilot Extensions, enterprise chat) without rewriting agent code.
+
+```mermaid
+graph TB
+    subgraph Google ADK Agents
+        RA[Role Analyst]
+        MR[Market Researcher]
+        CA[Curriculum Architect]
+        IC[Insight Coach]
+    end
+    subgraph A2A Envelope
+        SHARED{{shared request + context}}
+    end
+    subgraph MCP Bridge
+        MCPCLI[MCP Client]
+        MCPSRV[MCP Server Adapter]
+    end
+    RA --> SHARED
+    MR --> SHARED
+    CA --> SHARED
+    IC --> SHARED
+    SHARED --> MCPSRV
+    MCPSRV --> MCPCLI
+    MCPCLI -->|invoke career.saathi.plan| MCPSRV
+    MCPSRV -->|dispatch to Google ADK workflow| RA
+```
 
 ## Multi-Agent Intelligence Stack
 
