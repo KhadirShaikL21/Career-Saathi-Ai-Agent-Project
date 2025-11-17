@@ -1,4 +1,4 @@
-# Career Saathi · 8th Wonder Edition ✨
+# Career Saathi · Career Guidance Ai Agent ✨
 
 <div align="center">
 
